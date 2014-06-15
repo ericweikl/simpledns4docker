@@ -1,10 +1,41 @@
 #!/usr/bin/env ruby
 
-require 'rubydns'
+# simpledns4docker
+# https://github.com/ericweikl/simpledns4docker
+# MIT licensed
+#
+# Copyright (C) 2014 Eric Weikl
 
+
+require 'rubydns'
+require 'optparse'
+
+options = {
+  :port => 53,
+  :upstream => "8.8.8.8",
+}
+
+parser = OptionParser.new do |opts|
+  opts.banner = 'Usage: simpledns4docker.rb [options]'
+
+  opts.on("-p", "--port [PORT]", "listen on port PORT (default: 53)") do |port|
+    options[:port] = port
+  end
+  opts.on("-u", "--upstream [IP]", "use IP as an upstream server (default: 8.8.8.8") do |ip|
+    options[:upstream] = ip
+  end
+  opts.on_tail("-h", "--help", "show this message") do
+    puts opts
+    exit
+  end
+end
+
+parser.parse(ARGV)
+
+UPSTREAM = options[:upstream]
 INTERFACES = [
-  [:udp, "0.0.0.0", 5300],
-  [:tcp, "0.0.0.0", 5300]
+  [:udp, "0.0.0.0", options[:port]],
+  [:tcp, "0.0.0.0", options[:port]]
 ]
 
 Name = Resolv::DNS::Name
@@ -12,10 +43,10 @@ IN = Resolv::DNS::Resource::IN
 
 class DnsServer < RubyDNS::Server
   
-  def initialize
+  def initialize upstream
     super({})
     @lookup = {}
-    @upstream = RubyDNS::Resolver.new([[:udp, "8.8.8.8", 53], [:tcp, "8.8.8.8", 53]])
+    @upstream = RubyDNS::Resolver.new([[:udp, upstream, 53], [:tcp, upstream, 53]])
   end
 
   def add ip, host
@@ -70,7 +101,7 @@ end
 
 module Application
   def post_init
-    server = DnsServer.new
+    server = DnsServer.new UPSTREAM
     @handler = DockerEventHandler.new server
     server.run(:listen => INTERFACES)
   end
