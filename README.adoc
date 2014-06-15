@@ -1,0 +1,24 @@
+simpledns4docker
+================
+:Author: Eric Weikl
+
+A Dynamic DNS Server for Docker.
+
+This is quickly hacked-together Ruby script for a DNS server that
+automatically inserts A-Records for link:http://docker.com[Docker]
+containers. It listens to
+link:https://docs.docker.com/reference/commandline/cli/#events[docker
+events] and dynamically adds or removes containers from the DNS server.
+Only IP address and host name (set by the --hostname parameter) are
+published. An upstream server is used to look up any non-docker host names.
+
+I created this for simple development scenarios, where I don't need the full
+power of something like
+link:https://github.com/crosbymichael/skydock[SkyDock] or
+link:https://github.com/bnfinet/docker-dns[docker-dns]. Also, I wanted to
+play around :-)
+
+It's based on link:https://github.com/ioquatix/rubydns[RubyDNS] and is
+inspired by above projects, as well as
+link:http://objectiveoriented.com/devops/2014/02/15/docker-io-service-discovery-your-network-and-how-to-make-it-work[this
+blog post].
