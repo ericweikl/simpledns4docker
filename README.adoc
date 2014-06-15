@@ -9,7 +9,7 @@ automatically inserts A-Records for link:http://docker.com[Docker]
 containers. It listens to
 link:https://docs.docker.com/reference/commandline/cli/#events[docker
 events] and dynamically adds or removes containers from the DNS server.
-Only IP address and host name (set by the --hostname parameter) are
+Only IP address and host name (set by the +--hostname+ parameter) are
 published. An upstream server is used to look up any non-docker host names.
 
 I created this for simple development scenarios, where I don't need the full
@@ -22,3 +22,87 @@ It's based on link:https://github.com/ioquatix/rubydns[RubyDNS] and is
 inspired by above projects, as well as
 link:http://objectiveoriented.com/devops/2014/02/15/docker-io-service-discovery-your-network-and-how-to-make-it-work[this
 blog post].
+
+.Dependencies
+
+This script depends on link:https://github.com/ioquatix/rubydns[RubyDNS] and
+link:http://rubyeventmachine.com/[eventmachine].
+
+.Usage
+
+Start the server using the default. This will listen on port 53 and forward
+all DNS requests to Google if no containers are found. Since it listens on
+port 53, it must be started as root.
+
+[source,bash]
+----
+$ ruby simpledns4docker.rb
+I, [2014-06-15T19:36:46.975493 #6134]  INFO -- : Starting RubyDNS server (v0.8.4)...
+I, [2014-06-15T19:36:46.975663 #6134]  INFO -- : Listening on udp:0.0.0.0:53
+I, [2014-06-15T19:36:46.975893 #6134]  INFO -- : Listening on tcp:0.0.0.0:53
+----
+
+You can listen to a different port by using the +--port+ parameter:
+[source,bash]
+----
+$ ruby simpledns4docker.rb --port 5300
+I, [2014-06-15T19:37:52.056535 #6168]  INFO -- : Starting RubyDNS server (v0.8.4)...
+I, [2014-06-15T19:37:52.056697 #6168]  INFO -- : Listening on udp:0.0.0.0:5300
+I, [2014-06-15T19:37:52.056872 #6168]  INFO -- : Listening on tcp:0.0.0.0:5300
+----
+
+To use a different upstream DNS server, use the +--upstream+ parameter:
+[source,bash]
+----
+$ ruby simpledns4docker.rb --port 5300 --upstream 208.67.222.222
+I, [2014-06-15T19:39:17.352928 #6236]  INFO -- : Starting RubyDNS server (v0.8.4)...
+I, [2014-06-15T19:39:17.353064 #6236]  INFO -- : Listening on udp:0.0.0.0:5300
+I, [2014-06-15T19:39:17.353208 #6236]  INFO -- : Listening on tcp:0.0.0.0:5300
+----
+
+.Testing
+
+After starting the DNS server, fire up a Docker container running a bash
+process in a separate console:
+[source,bash]
+----
+$ docker run -i -t  --hostname foobar ubuntu:trusty /bin/bash
+root@foobar:/#
+----
+
+You should see output like this in the first shell session:
+[source,bash]
+----
+D, [2014-06-15T19:42:57.386953 #6387] DEBUG -- : registering foobar => 172.17.0.2
+----
+
+Then, perform a lookup for host 'foobar' from yet another shell:
+[source,bash]
+----
+$ dig @127.0.0.1 -p 5300 foobar
+
+; <<>> DiG 9.9.5-3-Ubuntu <<>> @127.0.0.1 -p 5300 foobar
+; (1 server found)
+;; global options: +cmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 86
+;; flags: qr aa rd; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 0
+;; WARNING: recursion requested but not available
+
+;; QUESTION SECTION:
+;foobar.                                IN      A
+
+;; ANSWER SECTION:
+foobar.                 86400   IN      A       172.17.0.2
+
+;; Query time: 4 msec
+;; SERVER: 127.0.0.1#5300(127.0.0.1)
+;; WHEN: Sun Jun 15 19:43:42 CEST 2014
+;; MSG SIZE  rcvd: 40
+----
+
+Exit the bash shell in the container, then you should see output like this:
+[source,bash]
+----
+D, [2014-06-15T19:45:28.832961 #6387] DEBUG -- : removing foobar
+----
