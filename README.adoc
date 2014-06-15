@@ -23,12 +23,14 @@ inspired by above projects, as well as
 link:http://objectiveoriented.com/devops/2014/02/15/docker-io-service-discovery-your-network-and-how-to-make-it-work[this
 blog post].
 
-.Dependencies
+Dependencies
+------------
 
 This script depends on link:https://github.com/ioquatix/rubydns[RubyDNS] and
 link:http://rubyeventmachine.com/[eventmachine].
 
-.Usage
+Usage
+-----
 
 Start the server using the default. This will listen on port 53 and forward
 all DNS requests to Google if no containers are found. Since it listens on
@@ -60,7 +62,8 @@ I, [2014-06-15T19:39:17.353064 #6236]  INFO -- : Listening on udp:0.0.0.0:5300
 I, [2014-06-15T19:39:17.353208 #6236]  INFO -- : Listening on tcp:0.0.0.0:5300
 ----
 
-.Testing
+Testing
+-------
 
 After starting the DNS server, fire up a Docker container running a bash
 process in a separate console:
