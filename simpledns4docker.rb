@@ -83,9 +83,23 @@ class DockerEventHandler
     event = match[2]
     case event
       when 'start'
-        @server.add get_ip(cid), get_host(cid)
+        add cid
       when 'die'
-        @server.remove get_host(cid)
+        remove cid
+    end
+  end
+
+  def add cid
+    @server.add get_ip(cid), get_host(cid)
+  end
+
+  def remove cid
+    @server.remove get_host(cid)
+  end
+
+  def add_existing_containers
+    `docker ps -q`.each_line do |cid|
+      add cid
     end
   end
 
@@ -103,6 +117,7 @@ module Application
   def post_init
     server = DnsServer.new UPSTREAM
     @handler = DockerEventHandler.new server
+    @handler.add_existing_containers()
     server.run(:listen => INTERFACES)
   end
 
