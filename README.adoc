@@ -12,6 +12,12 @@ events] and dynamically adds or removes containers from the DNS server.
 Only IP address and host name (set by the +--hostname+ parameter) are
 published. An upstream server is used to look up any non-docker host names.
 
+This allows containers to discover each other using only DNS, making it easy
+to use existing software stacks together with Docker. If you're designing a
+new system, you should probably look into
+link:http://zookeeper.apache.org/[Zookeeper] or
+link:https://github.com/coreos/etcd[etcd].
+
 I created this for simple development scenarios, where I don't need the full
 power of something like
 link:https://github.com/crosbymichael/skydock[SkyDock] or
