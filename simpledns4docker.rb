@@ -46,22 +46,25 @@ class DnsServer < RubyDNS::Server
   def initialize upstream
     super({})
     @lookup = {}
+    @lookup_fqn = {}
     @upstream = RubyDNS::Resolver.new([[:udp, upstream, 53], [:tcp, upstream, 53]])
   end
 
-  def add ip, host
-    logger.debug "registering #{host} => #{ip}"
+  def add ip, host, domain
+    logger.debug "registering #{host}.#{domain} => #{ip}"
     @lookup[host] = ip 
+    @lookup_fqn["#{host}.#{domain}"] = ip
   end
 
-  def remove host
-    logger.debug "removing #{host}"
+  def remove host, domain
+    logger.debug "removing #{host}.#{domain}"
     @lookup.delete(host)
+    @lookup_fqn.delete("#{host}.#{domain}")
   end
 
   def process(name, resource_class, transaction)
     if resource_class == IN::A
-      ip = @lookup[name]
+      ip = @lookup[name] || @lookup_fqn[name]
       if ip
         logger.debug "internal lookup for #{name} => #{ip}"
         return transaction.respond!(ip)
@@ -90,11 +93,11 @@ class DockerEventHandler
   end
 
   def add cid
-    @server.add get_ip(cid), get_host(cid)
+    @server.add get_ip(cid), get_host(cid), get_domain(cid)
   end
 
   def remove cid
-    @server.remove get_host(cid)
+    @server.remove get_host(cid), get_domain(cid)
   end
 
   def add_existing_containers
@@ -104,13 +107,20 @@ class DockerEventHandler
   end
 
   def get_host cid
-    `docker inspect --format '{{ .Config.Hostname }}' #{cid}`.strip!
+    get_attribute cid, 'Config.Hostname'
+  end
+
+  def get_domain cid
+    get_attribute cid, 'Config.Domainname'
   end
 
   def get_ip cid
-    `docker inspect --format '{{ .NetworkSettings.IPAddress }}' #{cid}`.strip!
+    get_attribute cid, 'NetworkSettings.IPAddress'
   end
 
+  def get_attribute cid, attribute
+    `docker inspect --format '{{ .#{attribute} }}' #{cid}`.strip!
+  end
 end
 
 module Application
